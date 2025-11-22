@@ -1,6 +1,7 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import Link from "next/link";
+import LessonContent from "@/components/LessonContent"; // <--- Import it
 
 export default async function LessonPage({
   params,
@@ -19,29 +20,25 @@ export default async function LessonPage({
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-10">
-      {/* Navigation Breadcrumb */}
+      {/* Navigation */}
       <div className="mb-6 flex gap-2 text-sm text-neutral-400">
-        <Link href={`/courses/${courseSlug}`} className="hover:text-white">
-          Course
-        </Link>
-        <span>/</span>
         <Link
           href={`/courses/${courseSlug}/${segmentSlug}`}
           className="hover:text-white"
         >
-          Segment
+          &larr; Back to Segment
         </Link>
       </div>
 
-      <h1 className="mb-6 text-3xl font-bold text-white">{lesson.title}</h1>
+      <h1 className="mb-8 text-4xl font-bold tracking-tight text-white">
+        {lesson.title}
+      </h1>
 
-      {/* Video and Content sections remain the same as your original code */}
-      <div className="mb-8 flex aspect-video w-full items-center justify-center rounded-xl border border-neutral-800 bg-neutral-900 text-white">
-        {lesson.video_url ? <p>Video Player Here</p> : <p>No Video</p>}
-      </div>
+      {/* DELETED: Video Section */}
 
-      <div className="prose prose-invert lg:prose-xl">
-        <p>{lesson.content}</p>
+      {/* NEW: Math/Text Renderer */}
+      <div className="rounded-2xl border border-neutral-800 bg-neutral-900/50 p-10">
+        <LessonContent content={lesson.content} />
       </div>
     </div>
   );
