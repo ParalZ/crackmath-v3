@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.84.0",
     "katex": "^0.16.25",
     "nerdamer": "^1.1.13",

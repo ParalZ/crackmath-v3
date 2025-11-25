@@ -7,6 +7,7 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import nerdamer from "nerdamer/all.min";
+import { recordCorrectAnswer, completeLesson } from "@/app/courses/actions"; // <--- Import Server Actions
 
 // --- TYPES ---
 type QuestionType = "single_choice" | "multiple_choice" | "open";
@@ -26,9 +27,15 @@ type QuestionStatus = "unanswered" | "correct" | "incorrect" | "partial";
 export default function QuizInterface({
   questions,
   nextUrl,
+  lessonId, // <--- NEW: Needed to save progress
+  courseSlug, // <--- NEW: Needed to save progress
+  segmentSlug, // <--- NEW: Needed to save progress
 }: {
   questions: Question[];
   nextUrl: string;
+  lessonId: string;
+  courseSlug: string;
+  segmentSlug: string;
 }) {
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -54,9 +61,10 @@ export default function QuizInterface({
   }, [currentIndex, currentQ.question_type]);
 
   // --- LOGIC: CHECKER ---
-  const checkAnswer = () => {
+  const checkAnswer = async () => {
     let isCorrect = false;
 
+    // 1. Check Logic
     if (currentQ.question_type === "open") {
       try {
         isCorrect = nerdamer(userAnswer as string).eq(currentQ.correct_answer);
@@ -72,6 +80,13 @@ export default function QuizInterface({
       isCorrect = JSON.stringify(userArr) === JSON.stringify(correctArr);
     }
 
+    // 2. Save to Database (if correct)
+    if (isCorrect) {
+      // We fire this securely to the server
+      await recordCorrectAnswer(currentQ.id);
+    }
+
+    // 3. Update UI
     const newHistory = [...history];
     newHistory[currentIndex] = isCorrect ? "correct" : "incorrect";
     setHistory(newHistory);
@@ -88,10 +103,12 @@ export default function QuizInterface({
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentIndex < questions.length - 1) {
       setCurrentIndex((prev) => prev + 1);
     } else {
+      // 4. Mark Lesson as Complete in DB
+      await completeLesson(lessonId, courseSlug, segmentSlug);
       router.push(nextUrl);
     }
   };
@@ -114,7 +131,9 @@ export default function QuizInterface({
             <button
               key={idx}
               onClick={() => setCurrentIndex(idx)}
-              className={`flex h-10 w-10 items-center justify-center rounded-lg border text-sm font-bold transition-all hover:bg-neutral-700 ${color} ${isActive ? "ring-2 ring-white" : ""}`}
+              className={`flex h-10 w-10 items-center justify-center rounded-lg border text-sm font-bold transition-all hover:bg-neutral-700 ${color} ${
+                isActive ? "ring-2 ring-white" : ""
+              }`}
             >
               {idx + 1}
             </button>
@@ -241,8 +260,7 @@ export default function QuizInterface({
           )}
         </div>
 
-        {/* --- FIXED HINT SECTION --- */}
-        {/* We moved this OUT of the footer and restored the full styling */}
+        {/* --- HINT SECTION --- */}
         {!isAnswered && currentQ.hint && (
           <div className="mb-8">
             {!showHint ? (

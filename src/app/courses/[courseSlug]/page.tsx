@@ -1,5 +1,5 @@
 import ModuleCard from "@/components/ModuleCard";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/utils/supabase/server"; // <--- SECURE CLIENT
 import { notFound } from "next/navigation";
 
 export default async function CoursePage({
@@ -8,6 +8,7 @@ export default async function CoursePage({
   params: { courseSlug: string };
 }) {
   const { courseSlug } = await params;
+  const supabase = await createClient(); // <--- Initialize
 
   // 1. Get the Course ID first
   const { data: course } = await supabase

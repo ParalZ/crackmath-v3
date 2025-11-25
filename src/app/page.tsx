@@ -1,14 +1,24 @@
 import ModuleCard from "@/components/ModuleCard";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/utils/supabase/server";
 
 export const revalidate = 0;
 
 export default async function HomePage() {
+  const supabase = await createClient();
+
   // Fetch Courses
-  const { data: courses } = await supabase
+  const { data: courses, error } = await supabase
     .from("courses")
     .select("*")
     .order("created_at", { ascending: true });
+
+  // --- ADD THIS DEBUGGING BLOCK ---
+  if (error) {
+    console.error("Supabase Error:", error);
+  } else {
+    console.log("Courses found:", courses?.length);
+  }
+  // -------------------------------
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-20">
@@ -23,10 +33,14 @@ export default async function HomePage() {
             key={course.id}
             title={course.title}
             description={course.description || "Start this course"}
-            // Link to the Course Page
             link={`/courses/${course.slug}`}
           />
         ))}
+
+        {/* Helper to see if map is running */}
+        {(!courses || courses.length === 0) && (
+          <div className="text-white">No courses found in database.</div>
+        )}
       </div>
     </div>
   );

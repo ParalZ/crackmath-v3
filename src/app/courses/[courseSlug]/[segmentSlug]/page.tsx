@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/utils/supabase/server"; // <--- SECURE CLIENT
 import { notFound } from "next/navigation";
 import LessonItem from "@/components/LessonItem";
 
@@ -9,6 +9,7 @@ export default async function SegmentPage({
   params: { courseSlug: string; segmentSlug: string };
 }) {
   const { courseSlug, segmentSlug } = await params;
+  const supabase = await createClient(); // <--- Initialize
 
   // 1. Get Segment Details
   const { data: segment } = await supabase
