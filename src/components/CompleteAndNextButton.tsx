@@ -30,7 +30,7 @@ export default function CompleteAndNextButton({
       onClick={handleClick}
       className="rounded-full bg-white px-8 py-3 font-bold text-black transition hover:bg-neutral-200"
     >
-      Complete & Next &rarr;
+      Następna Lekcja &rarr;
     </button>
   );
 }

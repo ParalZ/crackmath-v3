@@ -7,9 +7,12 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import nerdamer from "nerdamer/all.min";
-import { recordCorrectAnswer, completeLesson } from "@/app/courses/actions"; // <--- Import Server Actions
+import { recordCorrectAnswer, completeLesson } from "@/app/courses/actions";
 
-// --- TYPES ---
+import { SingleChoiceQuestion } from "./SingleChoiceQuestion";
+import { MultipleChoiceQuestion } from "./MultipleChoiceQuestion";
+import { OpenQuestion } from "./OpenQuestion";
+
 type QuestionType = "single_choice" | "multiple_choice" | "open";
 
 type Question = {
@@ -27,21 +30,33 @@ type QuestionStatus = "unanswered" | "correct" | "incorrect" | "partial";
 export default function QuizInterface({
   questions,
   nextUrl,
-  lessonId, // <--- NEW: Needed to save progress
-  courseSlug, // <--- NEW: Needed to save progress
-  segmentSlug, // <--- NEW: Needed to save progress
+  lessonId,
+  courseSlug,
+  segmentSlug,
+  completedQuestionIds = [],
 }: {
   questions: Question[];
   nextUrl: string;
   lessonId: string;
   courseSlug: string;
   segmentSlug: string;
+  completedQuestionIds?: string[];
 }) {
   const router = useRouter();
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [history, setHistory] = useState<QuestionStatus[]>(
-    new Array(questions.length).fill("unanswered"),
-  );
+
+  // 1. STATE INITIALIZATION
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    const firstUnansweredIndex = questions.findIndex(
+      (q) => !completedQuestionIds.includes(q.id),
+    );
+    return firstUnansweredIndex === -1 ? 0 : firstUnansweredIndex;
+  });
+
+  const [history, setHistory] = useState<QuestionStatus[]>(() => {
+    return questions.map((q) =>
+      completedQuestionIds.includes(q.id) ? "correct" : "unanswered",
+    );
+  });
 
   const [userAnswer, setUserAnswer] = useState<string | string[]>("");
   const [showHint, setShowHint] = useState(false);
@@ -50,7 +65,13 @@ export default function QuizInterface({
   const currentStatus = history[currentIndex];
   const isAnswered = currentStatus !== "unanswered";
 
-  // Reset state when question changes
+  // --- NEW LOGIC: SCORE CALCULATION ---
+  // Count how many are "correct" in the history array
+  const correctCount = history.filter((h) => h === "correct").length;
+  const totalQuestions = questions.length;
+  // Calculate if they passed (> 50%)
+  const isPassed = totalQuestions > 0 && correctCount / totalQuestions > 0.5;
+
   useEffect(() => {
     if (currentQ.question_type === "multiple_choice") {
       setUserAnswer([]);
@@ -64,60 +85,104 @@ export default function QuizInterface({
   const checkAnswer = async () => {
     let isCorrect = false;
 
-    // 1. Check Logic
     if (currentQ.question_type === "open") {
       try {
-        isCorrect = nerdamer(userAnswer as string).eq(currentQ.correct_answer);
+        const userStr = userAnswer as string;
+        const mathToParse = userStr.includes("\\")
+          ? nerdamer.convertFromLaTeX(userStr).toString()
+          : userStr;
+        isCorrect = nerdamer(mathToParse).eq(currentQ.correct_answer);
       } catch (e) {
         console.error("Nerdamer parse error", e);
         isCorrect = false;
       }
     } else if (currentQ.question_type === "single_choice") {
-      isCorrect = userAnswer === currentQ.correct_answer;
+      isCorrect = Number(userAnswer) === Number(currentQ.correct_answer);
     } else if (currentQ.question_type === "multiple_choice") {
-      const userArr = (userAnswer as string[]).sort();
-      const correctArr = (currentQ.correct_answer as string[]).sort();
+      const userArr = (userAnswer as string[])
+        .map(Number)
+        .sort((a, b) => a - b);
+      const correctArr = (currentQ.correct_answer as string[])
+        .map(Number)
+        .sort((a, b) => a - b);
       isCorrect = JSON.stringify(userArr) === JSON.stringify(correctArr);
     }
 
-    // 2. Save to Database (if correct)
     if (isCorrect) {
-      // We fire this securely to the server
       await recordCorrectAnswer(currentQ.id);
     }
 
-    // 3. Update UI
     const newHistory = [...history];
     newHistory[currentIndex] = isCorrect ? "correct" : "incorrect";
     setHistory(newHistory);
   };
 
-  // --- LOGIC: SELECTION ---
-  const toggleOption = (option: string) => {
-    if (isAnswered) return;
-    const currentList = userAnswer as string[];
-    if (currentList.includes(option)) {
-      setUserAnswer(currentList.filter((item) => item !== option));
-    } else {
-      setUserAnswer([...currentList, option]);
-    }
-  };
-
+  // --- MODIFIED HANDLER ---
   const handleNext = async () => {
     if (currentIndex < questions.length - 1) {
       setCurrentIndex((prev) => prev + 1);
     } else {
-      // 4. Mark Lesson as Complete in DB
-      await completeLesson(lessonId, courseSlug, segmentSlug);
-      router.push(nextUrl);
+      // LAST QUESTION LOGIC
+      if (isPassed) {
+        // Only mark complete if they passed
+        await completeLesson(lessonId, courseSlug, segmentSlug);
+        router.push(nextUrl);
+      } else {
+        // If failed, reload the page to let them try again
+        // Or you could reset state manually here
+        window.location.reload();
+      }
     }
   };
 
-  if (!currentQ) return <div className="text-white">No questions loaded.</div>;
+  // --- RENDER HELPER ---
+  const renderInputArea = () => {
+    switch (currentQ.question_type) {
+      case "single_choice":
+        return (
+          <SingleChoiceQuestion
+            options={currentQ.options || []}
+            value={userAnswer as string}
+            onChange={(val) => setUserAnswer(val.toString())}
+            disabled={isAnswered}
+            correctAnswer={currentQ.correct_answer}
+            isAnswered={isAnswered}
+          />
+        );
+      case "multiple_choice":
+        return (
+          <MultipleChoiceQuestion
+            options={currentQ.options || []}
+            value={userAnswer as string[]}
+            onChange={(val) => setUserAnswer(val)}
+            disabled={isAnswered}
+            correctAnswer={currentQ.correct_answer}
+            isAnswered={isAnswered}
+          />
+        );
+      case "open":
+        return (
+          <OpenQuestion
+            value={userAnswer as string}
+            onChange={(val) => setUserAnswer(val)}
+            onEnter={checkAnswer}
+            disabled={isAnswered}
+            status={currentStatus}
+          />
+        );
+      default:
+        return <div className="text-red-500">Unknown Question Type</div>;
+    }
+  };
+
+  if (!currentQ)
+    return <div className="text-white">Brak załadowanych pytań</div>;
+
+  const isLastQuestion = currentIndex === questions.length - 1;
 
   return (
     <div className="mx-auto max-w-4xl">
-      {/* 1. TOP NAVIGATION */}
+      {/* 1. PROGRESS BAR / QUESTION NAV */}
       <div className="mb-8 flex flex-wrap gap-2">
         {questions.map((_, idx) => {
           const status = history[idx];
@@ -141,165 +206,37 @@ export default function QuizInterface({
         })}
       </div>
 
-      {/* 2. QUESTION CARD */}
+      {/* 2. SCORE DISPLAY (Optional, keeps user informed) */}
+      <div className="mb-4 text-right text-sm text-neutral-500">
+        Score: {correctCount} / {totalQuestions}
+      </div>
+
       <div className="rounded-2xl border border-neutral-800 bg-neutral-900/80 p-10 backdrop-blur-sm">
         <div className="prose prose-invert mb-8 max-w-none text-xl">
           <span className="mb-2 block text-xs font-bold tracking-wider text-neutral-500 uppercase">
-            {"Question " + (currentIndex + 1)}
+            {"Pytanie " + (currentIndex + 1)}
           </span>
           <Markdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
             {currentQ.question_text}
           </Markdown>
         </div>
 
-        {/* INPUT AREA */}
-        <div className="mb-8">
-          {/* A: SINGLE CHOICE */}
-          {currentQ.question_type === "single_choice" && (
-            <div className="flex flex-col gap-3">
-              {currentQ.options?.map((option) => (
-                <button
-                  key={option}
-                  disabled={isAnswered}
-                  onClick={() => setUserAnswer(option)}
-                  className={`rounded-xl border px-6 py-4 text-left transition-all ${
-                    isAnswered
-                      ? option === currentQ.correct_answer
-                        ? "border-green-500 bg-green-500/10"
-                        : option === userAnswer
-                          ? "border-red-500 bg-red-500/10"
-                          : "border-neutral-800 opacity-50"
-                      : userAnswer === option
-                        ? "border-blue-500 bg-blue-500/10 text-white"
-                        : "border-neutral-700 hover:bg-neutral-800"
-                  }`}
-                >
-                  <Markdown
-                    remarkPlugins={[remarkMath]}
-                    rehypePlugins={[rehypeKatex]}
-                  >
-                    {option}
-                  </Markdown>
-                </button>
-              ))}
-            </div>
-          )}
+        <div className="mb-8">{renderInputArea()}</div>
 
-          {/* B: MULTIPLE CHOICE */}
-          {currentQ.question_type === "multiple_choice" && (
-            <div className="flex flex-col gap-3">
-              {currentQ.options?.map((option) => {
-                const isSelected = (userAnswer as string[]).includes(option);
-                const isActuallyCorrect = (
-                  currentQ.correct_answer as string[]
-                ).includes(option);
-
-                return (
-                  <button
-                    key={option}
-                    disabled={isAnswered}
-                    onClick={() => toggleOption(option)}
-                    className={`flex items-center gap-4 rounded-xl border px-6 py-4 text-left transition-all ${
-                      isAnswered
-                        ? isActuallyCorrect
-                          ? "border-green-500 bg-green-500/10"
-                          : isSelected
-                            ? "border-red-500 bg-red-500/10"
-                            : "border-neutral-800 opacity-50"
-                        : isSelected
-                          ? "border-blue-500 bg-blue-500/10 text-white"
-                          : "border-neutral-700 hover:bg-neutral-800"
-                    }`}
-                  >
-                    <div
-                      className={`flex h-6 w-6 items-center justify-center rounded border ${
-                        isSelected || (isAnswered && isActuallyCorrect)
-                          ? "border-transparent bg-current"
-                          : "border-neutral-500"
-                      }`}
-                    >
-                      {(isSelected || (isAnswered && isActuallyCorrect)) && (
-                        <span className="text-xs font-bold text-black">✓</span>
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <Markdown
-                        remarkPlugins={[remarkMath]}
-                        rehypePlugins={[rehypeKatex]}
-                      >
-                        {option}
-                      </Markdown>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* C: OPEN TEXT/MATH */}
-          {currentQ.question_type === "open" && (
-            <div className="w-full">
-              <input
-                type="text"
-                disabled={isAnswered}
-                value={userAnswer as string}
-                onChange={(e) => setUserAnswer(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !isAnswered) checkAnswer();
-                }}
-                placeholder="Type your answer..."
-                className={`w-full rounded-xl border bg-neutral-950 px-6 py-4 text-lg text-white outline-none focus:border-blue-500 ${
-                  isAnswered
-                    ? currentStatus === "correct"
-                      ? "border-green-500"
-                      : "border-red-500"
-                    : "border-neutral-700"
-                }`}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* --- HINT SECTION --- */}
         {!isAnswered && currentQ.hint && (
           <div className="mb-8">
-            {!showHint ? (
-              <button
-                onClick={() => setShowHint(true)}
-                className="flex items-center gap-2 text-sm font-medium text-amber-500 transition-colors hover:text-amber-400"
-              >
-                <span>💡 Show Hint</span>
-              </button>
-            ) : (
-              <div className="animate-in fade-in slide-in-from-top-2 relative overflow-hidden rounded-lg border-l-4 border-amber-500 bg-neutral-800 p-5">
-                <div className="flex items-start gap-3">
-                  <span className="text-xl">💡</span>
-                  <div className="space-y-1">
-                    <p className="text-xs font-bold tracking-wider text-amber-500 uppercase">
-                      Hint
-                    </p>
-                    <div className="prose prose-sm prose-invert text-neutral-300">
-                      <Markdown
-                        remarkPlugins={[remarkMath]}
-                        rehypePlugins={[rehypeKatex]}
-                      >
-                        {currentQ.hint}
-                      </Markdown>
-                    </div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowHint(false)}
-                  className="absolute top-2 right-2 text-neutral-500 hover:text-white"
-                >
-                  ✕
-                </button>
-              </div>
+            <button
+              onClick={() => setShowHint(!showHint)}
+              className="text-amber-500"
+            >
+              {showHint ? "Hide Hint" : "Show Hint"}
+            </button>
+            {showHint && (
+              <div className="mt-2 text-neutral-400">{currentQ.hint}</div>
             )}
           </div>
         )}
 
-        {/* ACTIONS & FEEDBACK */}
         <div className="border-t border-neutral-800 pt-6">
           {!isAnswered ? (
             <div className="flex justify-end">
@@ -307,7 +244,7 @@ export default function QuizInterface({
                 onClick={checkAnswer}
                 className="rounded-full bg-white px-8 py-3 font-bold text-black transition hover:scale-105 hover:bg-neutral-200"
               >
-                Check Answer
+                Sprawdź odpowiedź
               </button>
             </div>
           ) : (
@@ -327,8 +264,42 @@ export default function QuizInterface({
                 </div>
               </div>
 
+              {/* --- 3. FINAL BUTTON LOGIC --- */}
+              {isLastQuestion ? (
+                // --- END OF QUIZ UI ---
+                <div className="mt-6 rounded-xl border border-neutral-700 bg-neutral-800 p-6 text-center">
+                  <h3 className="mb-2 text-lg font-bold text-white">
+                    Result: {Math.round((correctCount / totalQuestions) * 100)}%
+                  </h3>
+                  <p className="mb-6 text-sm text-neutral-400">
+                    {isPassed
+                      ? "Great job! You have passed this lesson."
+                      : "You need more than 50% correct to complete this lesson."}
+                  </p>
+
+                  <button
+                    onClick={handleNext}
+                    className={`w-full rounded-full py-3 font-bold text-white transition ${
+                      isPassed
+                        ? "bg-green-600 hover:bg-green-500"
+                        : "bg-red-600 hover:bg-red-500"
+                    }`}
+                  >
+                    {isPassed ? "Finish Lesson & Continue" : "Retry Lesson"}
+                  </button>
+                </div>
+              ) : (
+                // --- NORMAL NEXT BUTTON ---
+                <button
+                  onClick={handleNext}
+                  className="mb-6 w-full rounded-full bg-blue-600 py-3 font-bold text-white hover:bg-blue-500"
+                >
+                  Następne Pytanie -&gt;
+                </button>
+              )}
+
               {currentQ.explanation && (
-                <div className="mb-6 rounded-xl bg-neutral-800 p-6 text-neutral-300">
+                <div className="mt-6 mb-6 rounded-xl bg-neutral-800 p-6 text-neutral-300">
                   <Markdown
                     remarkPlugins={[remarkMath]}
                     rehypePlugins={[rehypeKatex]}
@@ -337,15 +308,6 @@ export default function QuizInterface({
                   </Markdown>
                 </div>
               )}
-
-              <button
-                onClick={handleNext}
-                className="w-full rounded-full bg-blue-600 py-3 font-bold text-white hover:bg-blue-500"
-              >
-                {currentIndex === questions.length - 1
-                  ? "Finish"
-                  : "Next Question ->"}
-              </button>
             </div>
           )}
         </div>

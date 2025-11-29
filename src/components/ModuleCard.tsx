@@ -23,7 +23,7 @@ export default function ModuleCard({
 
       {/* Simple arrow that moves slightly on hover */}
       <div className="mt-6 text-sm font-medium text-white transition-transform group-hover:translate-x-1">
-        Start Module &rarr;
+        Rozpocznij moduł &rarr;
       </div>
     </Link>
   );

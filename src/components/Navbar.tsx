@@ -10,22 +10,15 @@ export default async function Navbar() {
   } = await supabase.auth.getUser();
 
   return (
-    <nav className="relative flex h-20 w-full items-center justify-between border-b border-neutral-800 bg-neutral-900 px-6">
+    <nav className="relative flex h-14 w-full items-center justify-between border-b border-neutral-800 bg-neutral-900 px-6">
       {/* 1. LEFT SIDE (Placeholder for future links, e.g. "Courses") */}
-      <div className="hidden md:flex md:w-48">
-        <Link
-          href="/courses"
-          className="text-sm font-medium text-neutral-400 transition-colors hover:text-white"
-        >
-          All Courses
-        </Link>
-      </div>
+      <div className="hidden md:flex md:w-48"></div>
 
       {/* 2. CENTER (Absolute positioning keeps it perfectly centered) */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
         <Link
           href="/"
-          className="bg-gradient-to-br from-cyan-300 to-blue-400 bg-clip-text text-3xl font-bold tracking-tight text-transparent transition-opacity hover:opacity-80"
+          className="bg-linear-to-r from-blue-400 to-purple-500 bg-clip-text text-4xl font-bold text-transparent"
         >
           CrackMath
         </Link>
@@ -38,7 +31,7 @@ export default async function Navbar() {
           <div className="flex items-center gap-4">
             {/* User Email (Subtle) */}
             <div className="hidden text-right text-xs md:block">
-              <p className="text-neutral-500">Logged in as</p>
+              <p className="text-neutral-500">Zalogowany jako</p>
               <p className="font-medium text-neutral-200">{user.email}</p>
             </div>
 
@@ -53,7 +46,7 @@ export default async function Navbar() {
                 className="text-sm font-medium text-neutral-400 transition-colors hover:text-red-400"
                 type="submit"
               >
-                Sign Out
+                Wyloguj się
               </button>
             </form>
           </div>
@@ -63,7 +56,7 @@ export default async function Navbar() {
             href="/login"
             className="rounded-full bg-white px-5 py-2 text-sm font-bold text-black transition-transform hover:scale-105 hover:bg-neutral-200"
           >
-            Log in
+            Zaloguj się
           </Link>
         )}
       </div>

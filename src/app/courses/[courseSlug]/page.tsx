@@ -1,5 +1,6 @@
+import Breadcrumbs from "@/components/Breadcrumbs";
 import ModuleCard from "@/components/ModuleCard";
-import { createClient } from "@/utils/supabase/server"; // <--- SECURE CLIENT
+import { createClient } from "@/utils/supabase/server";
 import { notFound } from "next/navigation";
 
 export default async function CoursePage({
@@ -8,9 +9,8 @@ export default async function CoursePage({
   params: { courseSlug: string };
 }) {
   const { courseSlug } = await params;
-  const supabase = await createClient(); // <--- Initialize
+  const supabase = await createClient();
 
-  // 1. Get the Course ID first
   const { data: course } = await supabase
     .from("courses")
     .select("id, title")
@@ -19,18 +19,22 @@ export default async function CoursePage({
 
   if (!course) return notFound();
 
-  // 2. Get Segments for this Course
   const { data: segments } = await supabase
     .from("segments")
     .select("*")
     .eq("course_id", course.id)
     .order("order_index", { ascending: true });
+  const breadcrumbs = [
+    { label: "CrackMath", href: "/" },
+    { label: courseSlug, href: `/courses/${courseSlug}` },
+  ];
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-20">
+      <Breadcrumbs items={breadcrumbs} />
       <div className="mb-16">
         <span className="text-sm tracking-wider text-neutral-500 uppercase">
-          Course
+          Kurs
         </span>
         <h1 className="mt-2 text-4xl font-bold text-white">{course.title}</h1>
       </div>
@@ -40,7 +44,7 @@ export default async function CoursePage({
           <ModuleCard
             key={segment.id}
             title={segment.title}
-            description={segment.description || "View lessons"}
+            description={segment.description || "Sprawdź lekcje"}
             link={`/courses/${courseSlug}/${segment.slug}`}
           />
         ))}

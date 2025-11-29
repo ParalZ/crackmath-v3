@@ -13,14 +13,20 @@ export async function completeLesson(
   courseSlug: string,
   segmentSlug: string,
 ) {
+  console.log("🚀 Action: completeLesson started for:", lessonId); // LOG 1
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return;
+  if (!user) {
+    console.error("❌ Error: No user logged in."); // LOG 2
+    return;
+  }
 
-  // Upsert = Update if exists, Insert if new
+  console.log("👤 User found:", user.id); // LOG 3
+
   const { error } = await supabase.from("lesson_progress").upsert(
     {
       user_id: user.id,
@@ -32,19 +38,14 @@ export async function completeLesson(
   );
 
   if (error) {
-    console.error("Error completing lesson:", error);
+    console.error("❌ DB Error:", error.message, error.details); // LOG 4
     return;
   }
 
-  // This tells Next.js to refresh the course page data
-  // so the green checkmarks appear immediately without a page reload.
+  console.log("✅ Success! Lesson marked complete."); // LOG 5
   revalidatePath(`/courses/${courseSlug}/${segmentSlug}`);
 }
 
-/**
- * Records a specific question as being answered correctly.
- * This allows us to track granular progress or show "You got this right before" later.
- */
 export async function recordCorrectAnswer(questionId: string) {
   const supabase = await createClient();
   const {
