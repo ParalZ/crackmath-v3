@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
+    // CHANGE 1: Bump target to ES2020 (Cortex uses modern features)
+    "target": "ES2020",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
@@ -18,8 +19,12 @@
         "name": "next"
       }
     ],
+    // CHANGE 3: Force TypeScript to look at the correct types
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@cortex-js/compute-engine": [
+        "./node_modules/@cortex-js/compute-engine/dist/compute-engine.d.ts"
+      ]
     }
   },
   "include": [
