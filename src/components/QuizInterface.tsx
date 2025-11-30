@@ -6,7 +6,8 @@ import Markdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
-import nerdamer from "nerdamer/all.min";
+//import nerdamer from "nerdamer/all.min";
+import { ComputeEngine } from "@cortex-js/compute-engine";
 import { recordCorrectAnswer, completeLesson } from "@/app/courses/actions";
 
 import { SingleChoiceQuestion } from "./SingleChoiceQuestion";
@@ -87,16 +88,34 @@ export default function QuizInterface({
 
     if (currentQ.question_type === "open") {
       try {
-        const userStr = userAnswer as string;
-        const mathToParse = userStr.includes("\\")
-          ? nerdamer.convertFromLaTeX(userStr).toString()
-          : userStr;
-        isCorrect = nerdamer(mathToParse).eq(currentQ.correct_answer);
+        // FIX 1: Ensure these are strings and never null
+        // We cast to string and provide a fallback empty string "" just in case
+        const userLatex = (userAnswer as string) || "";
+        const correctLatex = (currentQ.correct_answer as string) || "";
+
+        // Optional safety check: if database has no answer, don't crash
+        if (!correctLatex) {
+          console.error(
+            "Missing correct answer in database for ID:",
+            currentQ.id,
+          );
+          return;
+        }
+
+        const ce = new ComputeEngine();
+
+        // FIX 2: Parse guaranteed strings
+        const userExpr = ce.parse(userLatex);
+        const correctExpr = ce.parse(correctLatex);
+
+        // Now .isSame() works because correctExpr is a valid BoxedExpression
+        isCorrect = userExpr.isSame(correctExpr);
       } catch (e) {
-        console.error("Nerdamer parse error", e);
+        console.error("Compute Engine parse error", e);
         isCorrect = false;
       }
     } else if (currentQ.question_type === "single_choice") {
+      // ... (keep existing logic)
       isCorrect = Number(userAnswer) === Number(currentQ.correct_answer);
     } else if (currentQ.question_type === "multiple_choice") {
       const userArr = (userAnswer as string[])
@@ -111,7 +130,6 @@ export default function QuizInterface({
     if (isCorrect) {
       await recordCorrectAnswer(currentQ.id);
     }
-
     const newHistory = [...history];
     newHistory[currentIndex] = isCorrect ? "correct" : "incorrect";
     setHistory(newHistory);
