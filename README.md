@@ -37,7 +37,7 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 ## Future development
 
-- otwarte pytania z mathlive tak żeby łątwo wpisywać square rooty itp
+- naprawic bug z otwartymi pytaniami po odpowiedzi na multiple choice jest error w open
 - moze scroll na pytaniach zamiast na całą strone
 - pokazywanie wiadomosci przy logowaniu
 - zrobienie ładniejszego navbara

@@ -15,7 +15,6 @@
     "katex": "^0.16.25",
     "lucide-react": "^0.555.0",
     "mathlive": "^0.108.2",
-    "nerdamer": "^1.1.13",
     "next": "16.0.3",
     "react": "19.2.0",
     "react-dom": "19.2.0",

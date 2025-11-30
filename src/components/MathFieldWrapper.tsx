@@ -1,4 +1,3 @@
-// src/components/MathFieldWrapper.tsx
 "use client";
 
 import { useEffect, useRef } from "react";

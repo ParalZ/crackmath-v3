@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Markdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
-//import nerdamer from "nerdamer/all.min";
 import { ComputeEngine } from "@cortex-js/compute-engine";
 import { recordCorrectAnswer, completeLesson } from "@/app/courses/actions";
 
@@ -62,6 +61,8 @@ export default function QuizInterface({
   const [userAnswer, setUserAnswer] = useState<string | string[]>("");
   const [showHint, setShowHint] = useState(false);
 
+  const answerRef = useRef<string | string[]>("");
+
   const currentQ = questions[currentIndex];
   const currentStatus = history[currentIndex];
   const isAnswered = currentStatus !== "unanswered";
@@ -72,6 +73,9 @@ export default function QuizInterface({
   const totalQuestions = questions.length;
   // Calculate if they passed (> 50%)
   const isPassed = totalQuestions > 0 && correctCount / totalQuestions > 0.5;
+  useEffect(() => {
+    answerRef.current = userAnswer;
+  }, [userAnswer]);
 
   useEffect(() => {
     if (currentQ.question_type === "multiple_choice") {
@@ -82,40 +86,44 @@ export default function QuizInterface({
     setShowHint(false);
   }, [currentIndex, currentQ.question_type]);
 
+  const handleAnswerChange = (val: string | string[]) => {
+    setUserAnswer(val);
+    answerRef.current = val; // <--- Update Ref immediately
+  };
   // --- LOGIC: CHECKER ---
   const checkAnswer = async () => {
+    const answerToCheck = answerRef.current;
+
+    console.log("Checking Answer:", answerToCheck); // Debugging: verify it's the full string
     let isCorrect = false;
 
     if (currentQ.question_type === "open") {
+      setUserAnswer("");
       try {
-        // FIX 1: Ensure these are strings and never null
-        // We cast to string and provide a fallback empty string "" just in case
         const userLatex = (userAnswer as string) || "";
         const correctLatex = (currentQ.correct_answer as string) || "";
 
-        // Optional safety check: if database has no answer, don't crash
-        if (!correctLatex) {
-          console.error(
-            "Missing correct answer in database for ID:",
-            currentQ.id,
-          );
-          return;
+        // 1. Parse both expressions
+        const ce = new ComputeEngine();
+        const userExpr = ce.parse(userLatex).simplify();
+        const correctExpr = ce.parse(correctLatex).simplify();
+
+        // 2. Compare them
+        // We check isEqual() for math equality (best for students)
+        // We check isSame() as a fallback for exact structural matches
+        if (userExpr.isEqual(correctExpr) || userExpr.isSame(correctExpr)) {
+          isCorrect = true;
         }
 
-        const ce = new ComputeEngine();
-
-        // FIX 2: Parse guaranteed strings
-        const userExpr = ce.parse(userLatex);
-        const correctExpr = ce.parse(correctLatex);
-
-        // Now .isSame() works because correctExpr is a valid BoxedExpression
-        isCorrect = userExpr.isSame(correctExpr);
+        // OPTIONAL Debugging: See how the engine interprets the input
+        console.log("User Input:", userLatex);
+        console.log("Parsed:", userExpr.latex);
+        console.log("Is Correct:", isCorrect);
       } catch (e) {
-        console.error("Compute Engine parse error", e);
+        console.error("Parse error", e);
         isCorrect = false;
       }
     } else if (currentQ.question_type === "single_choice") {
-      // ... (keep existing logic)
       isCorrect = Number(userAnswer) === Number(currentQ.correct_answer);
     } else if (currentQ.question_type === "multiple_choice") {
       const userArr = (userAnswer as string[])
@@ -126,13 +134,15 @@ export default function QuizInterface({
         .sort((a, b) => a - b);
       isCorrect = JSON.stringify(userArr) === JSON.stringify(correctArr);
     }
-
-    if (isCorrect) {
-      await recordCorrectAnswer(currentQ.id);
-    }
     const newHistory = [...history];
     newHistory[currentIndex] = isCorrect ? "correct" : "incorrect";
     setHistory(newHistory);
+
+    if (isCorrect) {
+      recordCorrectAnswer(currentQ.id).catch((err) => {
+        console.error("Failed to record answer on server:", err);
+      });
+    }
   };
 
   // --- MODIFIED HANDLER ---
@@ -160,8 +170,9 @@ export default function QuizInterface({
         return (
           <SingleChoiceQuestion
             options={currentQ.options || []}
-            value={userAnswer as string}
-            onChange={(val) => setUserAnswer(val.toString())}
+            // Fix: Ensure we don't pass an array to Single Choice
+            value={typeof userAnswer === "string" ? userAnswer : ""}
+            onChange={(val) => handleAnswerChange(val.toString())}
             disabled={isAnswered}
             correctAnswer={currentQ.correct_answer}
             isAnswered={isAnswered}
@@ -171,8 +182,9 @@ export default function QuizInterface({
         return (
           <MultipleChoiceQuestion
             options={currentQ.options || []}
-            value={userAnswer as string[]}
-            onChange={(val) => setUserAnswer(val)}
+            // Fix: Ensure we always pass an array (never a string)
+            value={Array.isArray(userAnswer) ? userAnswer : []}
+            onChange={(val) => handleAnswerChange(val)}
             disabled={isAnswered}
             correctAnswer={currentQ.correct_answer}
             isAnswered={isAnswered}
@@ -181,8 +193,10 @@ export default function QuizInterface({
       case "open":
         return (
           <OpenQuestion
-            value={userAnswer as string}
-            onChange={(val) => setUserAnswer(val)}
+            // Fix: CRITICAL - Ensure we always pass a string (never an array)
+            // This prevents the "first element of array" crash in MathLive
+            value={typeof userAnswer === "string" ? userAnswer : ""}
+            onChange={(val) => handleAnswerChange(val)}
             onEnter={checkAnswer}
             disabled={isAnswered}
             status={currentStatus}
@@ -247,7 +261,7 @@ export default function QuizInterface({
               onClick={() => setShowHint(!showHint)}
               className="text-amber-500"
             >
-              {showHint ? "Hide Hint" : "Show Hint"}
+              {showHint ? "Hide Hint 💡" : "Show Hint 💡"}
             </button>
             {showHint && (
               <div className="mt-2 text-neutral-400">{currentQ.hint}</div>
