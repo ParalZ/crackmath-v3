@@ -3,6 +3,16 @@ import { createClient } from "@/utils/supabase/server";
 import LessonItem from "@/components/LessonItem";
 import Breadcrumbs from "@/components/Breadcrumbs";
 
+interface LessonData {
+  id: string;
+  title: string;
+  slug: string;
+  is_free_preview: boolean;
+  order_index: number;
+  // This is optional (?) because it won't exist if the user isn't logged in
+  lesson_progress?: { is_completed: boolean }[] | null;
+}
+
 export default async function SegmentPage({
   params,
 }: {
@@ -15,7 +25,6 @@ export default async function SegmentPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // 1. Fetch Segment Details
   const { data: segment } = await supabase
     .from("segments")
     .select("id, title")
@@ -25,13 +34,11 @@ export default async function SegmentPage({
   if (!segment) return notFound();
   console.log(segment);
 
+  const selectQuery = user ? `*,lesson_progress(is_completed)`: "*";
   //because we have RLS the user cannot see entries of other users that is why we do not have to filter on user id in lesson_progress
   const { data: rawLessons } = await supabase
     .from("lessons")
-    .select(`
-      *,
-      lesson_progress(is_completed)
-      `)
+    .select(selectQuery)
     .eq("segment_id", segment.id)
     .order("order_index", { ascending: true });
 
@@ -40,7 +47,8 @@ export default async function SegmentPage({
     { label: courseSlug, href: `/courses/${courseSlug}` },
     { label: segmentSlug, href: `/courses/${courseSlug}/${segmentSlug}` },
   ];
-
+  console.log(rawLessons);
+  const lessons = rawLessons as unknown as LessonData[];
   return (
     <div className="mx-auto max-w-5xl px-6 py-20">
       <Breadcrumbs items={breadcrumbs} />
@@ -48,10 +56,10 @@ export default async function SegmentPage({
       <h1 className="mb-8 text-3xl font-bold text-white">{segment.title}</h1>
 
       <div className="flex flex-col gap-4">
-        {rawLessons?.map((lesson, index) => {
+        {lessons?.map((lesson, index) => {
           //check if lesson progress exist and if it exist if it has first row (it cannot have more, just 1 row for completedness)
           const progress = lesson.lesson_progress && lesson.lesson_progress[0];
-          const isCompleted = progress ? progress : false;
+          const isCompleted = progress ? progress.is_completed : false;
 
           //logic for locking the lesson if someone is not logged in
           const isLocked = !lesson.is_free_preview && !user;
