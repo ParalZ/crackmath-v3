@@ -26,7 +26,7 @@ export default async function CoursePage({
     .order("order_index", { ascending: true });
   const breadcrumbs = [
     { label: "CrackMath", href: "/" },
-    { label: courseSlug, href: `/courses/${courseSlug}` },
+    { label: course.title, href: `/courses/${courseSlug}` },
   ];
 
   return (

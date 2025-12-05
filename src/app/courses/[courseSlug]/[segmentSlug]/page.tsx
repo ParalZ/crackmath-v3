@@ -27,14 +27,14 @@ export default async function SegmentPage({
 
   const { data: segment } = await supabase
     .from("segments")
-    .select("id, title")
+    .select(`id, title, courses(title)`)
     .eq("slug", segmentSlug)
     .single();
 
   if (!segment) return notFound();
-  console.log(segment);
+  //console.log(segment);
 
-  const selectQuery = user ? `*,lesson_progress(is_completed)`: "*";
+  const selectQuery = user ? `*,lesson_progress(is_completed)` : "*";
   //because we have RLS the user cannot see entries of other users that is why we do not have to filter on user id in lesson_progress
   const { data: rawLessons } = await supabase
     .from("lessons")
@@ -42,12 +42,20 @@ export default async function SegmentPage({
     .eq("segment_id", segment.id)
     .order("order_index", { ascending: true });
 
+  //typesript thinks courses is an array, but dynamically it is an object
+  //when getting first item from array dynamically it shows undefined cause it is an object
+  //but if we let it just take courses.title typescript will give an error.
+  const courseData = Array.isArray(segment?.courses)
+    ? segment.courses[0]
+    : segment?.courses;
+  const courseLabel = courseData?.title || "No Course Linked";
+
   const breadcrumbs = [
     { label: "CrackMath", href: "/" },
-    { label: courseSlug, href: `/courses/${courseSlug}` },
-    { label: segmentSlug, href: `/courses/${courseSlug}/${segmentSlug}` },
+    { label: courseLabel, href: `/courses/${courseSlug}` },
+    { label: segment.title, href: `/courses/${courseSlug}/${segmentSlug}` },
   ];
-  console.log(rawLessons);
+  //console.log(rawLessons);
   const lessons = rawLessons as unknown as LessonData[];
   return (
     <div className="mx-auto max-w-5xl px-6 py-20">

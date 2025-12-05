@@ -6,19 +6,22 @@ import QuizInterface from "@/components/QuizInterface";
 import CompleteAndNextButton from "@/components/CompleteAndNextButton";
 import Breadcrumbs from "@/components/Breadcrumbs";
 
-export default async function GenericLessonPage({
+export default async function LessonPage({
   params,
 }: {
   params: { courseSlug: string; segmentSlug: string; lessonSlug: string };
 }) {
-  // Await params for Next.js 15 compatibility
   const { courseSlug, segmentSlug, lessonSlug } = await params;
   const supabase = await createClient();
 
-  // 1. Fetch Lesson
   const { data: lesson } = await supabase
     .from("lessons")
-    .select("*")
+    .select(
+      `*,
+      segments(title),
+      courses(title)
+      `,
+    )
     .eq("slug", lessonSlug)
     .single();
 
@@ -28,7 +31,6 @@ export default async function GenericLessonPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // 2. Fetch Next Lesson logic
   const { data: nextLesson } = await supabase
     .from("lessons")
     .select("slug")
@@ -38,7 +40,6 @@ export default async function GenericLessonPage({
     .limit(1)
     .single();
 
-  // 3. Lock Logic
   const isLocked = !lesson.is_free_preview && !user;
   if (isLocked) {
     return (
@@ -59,10 +60,13 @@ export default async function GenericLessonPage({
     );
   }
 
+  const segmentLabel = lesson.segments.title;
+  const courseLabel = lesson.courses.title;
+
   const breadcrumbs = [
     { label: "CrackMath", href: "/" },
-    { label: courseSlug, href: `/courses/${courseSlug}` },
-    { label: segmentSlug, href: `/courses/${courseSlug}/${segmentSlug}` },
+    { label: courseLabel, href: `/courses/${courseSlug}` },
+    { label: segmentLabel, href: `/courses/${courseSlug}/${segmentSlug}` },
     { label: lesson.title, href: "#", active: true },
   ];
 
