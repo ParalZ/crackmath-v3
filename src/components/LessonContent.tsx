@@ -13,14 +13,19 @@ interface BlockProps {
 
 const BLOCKS: Record<string, React.FC<BlockProps>> = {
   tip: ({ children }) => (
-    <div className="my-6 border-l-4 border-green-500 bg-green-500/10 p-4">
-      <h4 className="font-bold text-green-400">Tip</h4>
-      <div className="text-green-100">{children}</div>
+    <div className="rounded-lg border-l-4 border-green-500 bg-green-500/10 px-4 pt-6 pb-6">
+      {/* 1. Removed 'text-sm' so title stays big.
+          2. kept 'leading-none' to keep the title bar tight. 
+          3. 'm-0' removes margin around the title itself. */}
+      <h4 className="m-0! px-0 leading-none font-bold text-green-400">Tip</h4>
+
+      {/*5. prose-p:mb-0 -> Removes extra space at the bottom. */}
+      <div className="prose-p:mb-0 px-4 text-green-100">{children}</div>
     </div>
   ),
 
   warning: ({ children }) => (
-    <div className="my-6 border border-red-500 bg-red-900/20 p-4 text-center">
+    <div className="my-6 rounded-lg border border-red-500 bg-red-900/20 p-4 text-center">
       <strong className="tracking-widest text-red-400 uppercase">Uwaga</strong>
       <div className="text-red-200">{children}</div>
     </div>
@@ -34,9 +39,13 @@ const BLOCKS: Record<string, React.FC<BlockProps>> = {
   ),
 
   example: ({ children }) => (
-    <div className="my-6 border-l-4 border-blue-500 bg-blue-500/10 p-4">
-      <h4 className="font-bold text-blue-400">Przykłady</h4>
-      <div className="text-blue-100">{children}</div>
+    <div className="rounded-lg border-l-4 border-blue-500 bg-blue-500/10 px-4 pt-6 pb-0.5">
+      <h4 className="textblue-400 m-0! px-0 leading-none font-bold">
+        Przykłady
+      </h4>
+      <div className="px-4 text-blue-100 [&_li]:mb-1 [&_ul]:list-disc [&_ul]:pl-6">
+        {children}
+      </div>
     </div>
   ),
 

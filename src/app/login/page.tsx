@@ -18,9 +18,7 @@ export default function LoginPage() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-neutral-400">
-            Password
-          </label>
+          <label className="text-sm font-medium text-neutral-400">Hasło</label>
           <input
             id="password"
             name="password"
@@ -36,13 +34,13 @@ export default function LoginPage() {
             formAction={login}
             className="rounded-lg bg-white px-4 py-3 font-bold text-black hover:bg-neutral-200"
           >
-            Log in
+            Zaloguj się
           </button>
           <button
             formAction={signup}
             className="rounded-lg border border-neutral-700 px-4 py-3 font-bold text-white hover:bg-neutral-800"
           >
-            Sign up
+            Zarajestruj się
           </button>
         </div>
       </form>
