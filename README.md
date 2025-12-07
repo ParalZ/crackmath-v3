@@ -38,7 +38,7 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 ## Future development
 
 - make the virtual keyboard at mathlive connect to the box (as right now nothing shows in the box when writiting anything in the virtual keyboard)
--
+- make automated tests to test some basic logic (to see if nothing breaks after new updates to the website)
 
 ## future future ideas
 
