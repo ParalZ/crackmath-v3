@@ -50,10 +50,8 @@ export function OpenQuestion({
 
   return (
     <div className="w-full">
-      {/* 3. CONTAINER DIV */}
-      {/* We wrap the component to simulate the look of a standard input field (borders, rounding) */}
       <div
-        className={`overflow-hidden rounded-xl border bg-neutral-950 ${borderColor} transition-colors duration-200`}
+        className={`overflow-hidden rounded-xl border ${borderColor} flex h-15 items-center transition-colors duration-200`}
       >
         <MathFieldWrapper
           value={value}
@@ -62,13 +60,6 @@ export function OpenQuestion({
           disabled={disabled}
         />
       </div>
-
-      {/* Helper text */}
-      {!disabled && (
-        <p className="mt-2 text-xs text-neutral-500">
-          Tip: You can type text (like "sin") or LaTeX codes (like "\sqrt").
-        </p>
-      )}
     </div>
   );
 }

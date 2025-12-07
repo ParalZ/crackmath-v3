@@ -136,6 +136,19 @@ const ChartRenderer = ({ codeString }: { codeString: string }) => {
   }
 };
 
+interface InlineProps {
+  children: React.ReactNode;
+}
+
+const INLINE_COMMANDS: Record<string, React.FC<InlineProps>> = {
+  cyan: ({ children }) => <span className="text-cyan-400">{children}</span>,
+  violet: ({ children }) => <span className="text-violet-400">{children}</span>,
+  amber: ({ children }) => <span className="text-amber-400">{children}</span>,
+  emerald: ({ children }) => (
+    <span className="text-emerald-400">{children}</span>
+  ),
+};
+
 export default function LessonContent({ content }: { content: string }) {
   return (
     <div className="prose-lg prose-invert numbered-content max-w-none">
@@ -186,6 +199,32 @@ export default function LessonContent({ content }: { content: string }) {
               <code className={className} {...rest}>
                 {children}
               </code>
+            );
+          },
+
+          // ⬇️ THE NEW SCALABLE SPAN HANDLER
+          span({ className, children, ...props }) {
+            // 1. Check if it's a callout directive created by your plugin
+            // The plugin outputs className="callout variable1"
+            if (className?.includes("callout")) {
+              // 2. Extract the command name (e.g., remove "callout " -> get "variable1")
+              const commandName = className.replace("callout ", "");
+
+              // 3. Look up the component in your config object
+              const CommandComponent = INLINE_COMMANDS[commandName];
+
+              // 4. If found, render it.
+              if (CommandComponent) {
+                return <CommandComponent>{children}</CommandComponent>;
+              }
+            }
+
+            // 5. Fallback: If it's not a command, or the command doesn't exist,
+            // render a standard span.
+            return (
+              <span className={className} {...props}>
+                {children}
+              </span>
             );
           },
         }}

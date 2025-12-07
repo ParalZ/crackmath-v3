@@ -23,6 +23,7 @@ type Question = {
   correct_answer: any;
   hint: string | null;
   explanation: string | null;
+  answer_mode: string;
 };
 
 type QuestionStatus = "unanswered" | "correct" | "incorrect" | "partial";
@@ -105,14 +106,22 @@ export default function QuizInterface({
 
         // 1. Parse both expressions
         const ce = new ComputeEngine();
-        const userExpr = ce.parse(userLatex).simplify();
-        const correctExpr = ce.parse(correctLatex).simplify();
+        const userExpr = ce.parse(userLatex, { canonical: false });
+        const correctExpr = ce.parse(correctLatex, { canonical: false });
 
-        // 2. Compare them
-        // We check isEqual() for math equality (best for students)
-        // We check isSame() as a fallback for exact structural matches
-        if (userExpr.isEqual(correctExpr) || userExpr.isSame(correctExpr)) {
-          isCorrect = true;
+        if (currentQ.answer_mode == "SAME_VALUE") {
+          const userExprSimp = userExpr.simplify();
+          const correctExprSimp = correctExpr.simplify();
+          if (
+            userExprSimp.isEqual(correctExprSimp) ||
+            userExprSimp.isSame(correctExprSimp)
+          ) {
+            isCorrect = true;
+          }
+        } else if (currentQ.answer_mode == "EXACT") {
+          if (userExpr.isSame(correctExpr)) {
+            isCorrect = true;
+          }
         }
 
         // OPTIONAL Debugging: See how the engine interprets the input
@@ -245,9 +254,24 @@ export default function QuizInterface({
 
       <div className="rounded-2xl border border-neutral-800 bg-neutral-900/80 p-10 backdrop-blur-sm">
         <div className="prose prose-invert mb-8 max-w-none text-xl">
-          <span className="mb-2 block text-xs font-bold tracking-wider text-neutral-500 uppercase">
-            {"Pytanie " + (currentIndex + 1)}
-          </span>
+          <div className="mb-6 flex items-start justify-between">
+            <span className="mb-2 block text-xs font-bold tracking-wider text-neutral-500 uppercase">
+              {"Pytanie " + (currentIndex + 1)}
+            </span>
+            {/* Hint Button moved here */}
+            {!isAnswered && currentQ.hint && (
+              <button
+                onClick={() => setShowHint(!showHint)}
+                className="flex items-center gap-2 text-sm font-bold text-amber-500 transition-colors hover:text-amber-400"
+              >
+                <span>
+                  {showHint ? "Ukryj Podpowiedź" : "Pokaż Podpowiedź"}
+                </span>
+                <span>💡</span>
+              </button>
+            )}
+          </div>
+
           <Markdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
             {currentQ.question_text}
           </Markdown>
@@ -255,32 +279,67 @@ export default function QuizInterface({
 
         <div className="mb-8">{renderInputArea()}</div>
 
-        {!isAnswered && currentQ.hint && (
-          <div className="mb-8">
-            <button
-              onClick={() => setShowHint(!showHint)}
-              className="text-amber-500"
-            >
-              {showHint ? "Hide Hint 💡" : "Show Hint 💡"}
-            </button>
-            {showHint && (
-              <div className="mt-2 text-neutral-400">{currentQ.hint}</div>
-            )}
-          </div>
-        )}
-
         <div className="border-t border-neutral-800 pt-6">
           {!isAnswered ? (
-            <div className="flex justify-end">
-              <button
-                onClick={checkAnswer}
-                className="rounded-full bg-white px-8 py-3 font-bold text-black transition hover:scale-105 hover:bg-neutral-200"
-              >
-                Sprawdź odpowiedź
-              </button>
+            <div>
+              <div className="flex justify-end">
+                <button
+                  onClick={checkAnswer}
+                  className="rounded-full bg-white px-8 py-3 font-bold text-black transition hover:scale-105 hover:bg-neutral-200"
+                >
+                  Sprawdź odpowiedź
+                </button>
+              </div>
+              {showHint && (
+                <div className="my-4 rounded-lg border-l-4 border-amber-500 bg-amber-500/10 px-4 pt-6 pb-6">
+                  <Markdown
+                    remarkPlugins={[remarkMath]}
+                    rehypePlugins={[rehypeKatex]}
+                  >
+                    {currentQ.hint}
+                  </Markdown>
+                </div>
+              )}
             </div>
           ) : (
             <div className="animate-in fade-in slide-in-from-top-2">
+              {/* --- 3. FINAL BUTTON LOGIC --- */}
+              {isLastQuestion ? (
+                // --- END OF QUIZ UI ---
+                <div className="my-4 rounded-xl border border-neutral-700 bg-neutral-800 p-6 text-center">
+                  <h3 className="mb-2 text-lg font-bold text-white">
+                    Result: {Math.round((correctCount / totalQuestions) * 100)}%
+                  </h3>
+                  <p className="mb-6 text-sm text-neutral-400">
+                    {isPassed
+                      ? "Dobra robota! Ukończyłeś tę lekcje."
+                      : "Potrzenujesz więcej niż 50% aby ukończyć tę lekcje."}
+                  </p>
+
+                  <button
+                    onClick={handleNext}
+                    className={`w-full rounded-full py-3 font-bold text-white transition ${
+                      isPassed
+                        ? "bg-green-600 hover:bg-green-500"
+                        : "bg-red-600 hover:bg-red-500"
+                    }`}
+                  >
+                    {isPassed
+                      ? "Ukończ Lekcje i kontynuuj"
+                      : "Spróbuj jeszcze raz"}
+                  </button>
+                </div>
+              ) : (
+                // --- NORMAL NEXT BUTTON ---
+                <div className="mb-4 flex justify-end">
+                  <button
+                    onClick={handleNext}
+                    className="flex justify-end rounded-full bg-blue-600 px-8 py-3 font-bold text-neutral-100 transition hover:scale-105 hover:bg-blue-500"
+                  >
+                    Następne Pytanie -&gt;
+                  </button>
+                </div>
+              )}
               <div
                 className={`mb-4 flex items-center gap-3 rounded-lg p-4 ${
                   currentStatus === "correct"
@@ -292,43 +351,11 @@ export default function QuizInterface({
                   {currentStatus === "correct" ? "🎉" : "❌"}
                 </span>
                 <div className="font-bold">
-                  {currentStatus === "correct" ? "Correct!" : "Incorrect"}
+                  {currentStatus === "correct"
+                    ? "Dobrze!"
+                    : "Nieprawidłowa Odpowiedź"}
                 </div>
               </div>
-
-              {/* --- 3. FINAL BUTTON LOGIC --- */}
-              {isLastQuestion ? (
-                // --- END OF QUIZ UI ---
-                <div className="mt-6 rounded-xl border border-neutral-700 bg-neutral-800 p-6 text-center">
-                  <h3 className="mb-2 text-lg font-bold text-white">
-                    Result: {Math.round((correctCount / totalQuestions) * 100)}%
-                  </h3>
-                  <p className="mb-6 text-sm text-neutral-400">
-                    {isPassed
-                      ? "Great job! You have passed this lesson."
-                      : "You need more than 50% correct to complete this lesson."}
-                  </p>
-
-                  <button
-                    onClick={handleNext}
-                    className={`w-full rounded-full py-3 font-bold text-white transition ${
-                      isPassed
-                        ? "bg-green-600 hover:bg-green-500"
-                        : "bg-red-600 hover:bg-red-500"
-                    }`}
-                  >
-                    {isPassed ? "Finish Lesson & Continue" : "Retry Lesson"}
-                  </button>
-                </div>
-              ) : (
-                // --- NORMAL NEXT BUTTON ---
-                <button
-                  onClick={handleNext}
-                  className="mb-6 w-full rounded-full bg-blue-600 py-3 font-bold text-white hover:bg-blue-500"
-                >
-                  Następne Pytanie -&gt;
-                </button>
-              )}
 
               {currentQ.explanation && (
                 <div className="mt-6 mb-6 rounded-xl bg-neutral-800 p-6 text-neutral-300">
