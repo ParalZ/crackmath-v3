@@ -29,7 +29,7 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts",
-    "src/components/MathFieldWrapper.tsx"
+    "src/components/quiz/inputs/MathFieldWrapper.tsx"
   ],
   "exclude": ["node_modules"]
 }

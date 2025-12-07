@@ -37,7 +37,11 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 ## Future development
 
-- naprawic bug z otwartymi pytaniami po odpowiedzi na multiple choice jest error w open
+- make the virtual keyboard at mathlive connect to the box (as right now nothing shows in the box when writiting anything in the virtual keyboard)
+-
+
+## future future ideas
+
 - moze scroll na pytaniach zamiast na całą strone
 - pokazywanie wiadomosci przy logowaniu
 - zrobienie ładniejszego navbara

@@ -9,9 +9,9 @@ import "katex/dist/katex.min.css";
 import { ComputeEngine } from "@cortex-js/compute-engine";
 import { recordCorrectAnswer, completeLesson } from "@/app/courses/actions";
 
-import { SingleChoiceQuestion } from "./SingleChoiceQuestion";
-import { MultipleChoiceQuestion } from "./MultipleChoiceQuestion";
-import { OpenQuestion } from "./OpenQuestion";
+import { SingleChoiceQuestion } from "./quiz/inputs/SingleChoiceQuestion";
+import { MultipleChoiceQuestion } from "./quiz/inputs/MultipleChoiceQuestion";
+import { OpenQuestion } from "./quiz/inputs/OpenQuestion";
 
 type QuestionType = "single_choice" | "multiple_choice" | "open";
 

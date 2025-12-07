@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import LessonContent from "@/components/LessonContent";
-import QuizInterface from "@/components/QuizInterface";
+import QuizInterface from "@/components/quiz";
 import CompleteAndNextButton from "@/components/CompleteAndNextButton";
 import Breadcrumbs from "@/components/Breadcrumbs";
 
