@@ -5,12 +5,10 @@ import dynamic from "next/dynamic";
 // 1. DYNAMIC IMPORT
 // We import the wrapper dynamically with ssr: false.
 // This prevents Next.js from trying to render the MathLive component on the server,
-// which would cause a "window is not defined" error or hydration mismatch.
 const MathFieldWrapper = dynamic(() => import("./MathFieldWrapper"), {
   ssr: false,
-  // Optional: A loading skeleton while the heavy MathLive library loads
   loading: () => (
-    <div className="h-[60px] w-full animate-pulse rounded-xl bg-neutral-900" />
+    <div className="h-15 w-full animate-pulse rounded-xl bg-neutral-900" />
   ),
 });
 
@@ -29,9 +27,7 @@ export function OpenQuestion({
   disabled,
   status,
 }: Props) {
-  // 2. STYLING LOGIC
-  // We apply the border color to the container div
-  let borderColor = "border-neutral-700";
+  let borderColor = "border-neutral-700 h-15";
 
   if (disabled) {
     if (status === "correct") {
@@ -45,7 +41,7 @@ export function OpenQuestion({
   } else {
     // Normal state focus style logic is handled inside the wrapper or via CSS,
     // but we can set a default border here.
-    borderColor = "border-neutral-700 hover:border-neutral-500";
+    borderColor = "border-neutral-700 hover:border-neutral-500 h-15";
   }
 
   return (
