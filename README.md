@@ -39,6 +39,8 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 - make the virtual keyboard at mathlive connect to the box (as right now nothing shows in the box when writiting anything in the virtual keyboard)
 - make automated tests to test some basic logic (to see if nothing breaks after new updates to the website)
+- make prettier module cards to see the progress as the progress bar, some that are finished some in progress and showing the percentage progress.
+- make the paywall secure and working (so users that does not have the course buyed cannot see the premium content, and users that have the course can actually see it)
 
 ## future future ideas
 

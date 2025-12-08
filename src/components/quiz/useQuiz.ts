@@ -80,12 +80,14 @@ export const useQuiz = ({
         const userLatex = (userAnswer as string) || "";
         const correctLatex = (currentQ.correct_answer as string) || "";
         const ce = new ComputeEngine();
+
         const userExpr = ce.parse(userLatex, { canonical: false });
         const correctExpr = ce.parse(correctLatex, { canonical: false });
 
+        const userExprSimp = ce.parse(userLatex).simplify();
+        const correctExprSimp = ce.parse(correctLatex).simplify();
+
         if (currentQ.answer_mode == "SAME_VALUE") {
-          const userExprSimp = userExpr.simplify();
-          const correctExprSimp = correctExpr.simplify(); // Fixed typo from previous code (userExpr -> correctExpr)
           if (
             userExprSimp.isEqual(correctExprSimp) ||
             userExprSimp.isSame(correctExprSimp)
