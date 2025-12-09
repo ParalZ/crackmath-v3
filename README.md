@@ -37,8 +37,9 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 ## Future development
 
-- use proxy instead of middleware
 - make prettier module cards to see the progress as the progress bar, some that are finished some in progress and showing the percentage progress.
+- remove the mathlive 3 lines icon next to the virtual keyboard
+- wydupić score z pytań i dać pytania wyżej
 - make the paywall secure and working (so users that does not have the course buyed cannot see the premium content, and users that have the course can actually see it)
 
 ## future future ideas
