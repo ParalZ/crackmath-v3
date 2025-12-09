@@ -43,10 +43,6 @@ export default function QuizInterface(props: QuizInterfaceProps) {
         onNavigate={setCurrentIndex}
       />
 
-      <div className="mb-4 text-right text-sm text-neutral-500">
-        Score: {stats.correctCount} / {stats.totalQuestions}
-      </div>
-
       {/* SECTION: Main Card */}
       <div className="flex flex-col rounded-2xl border border-neutral-800 bg-neutral-900/80 p-10 backdrop-blur-sm transition-all">
         {/* Content Top: Text + Input */}

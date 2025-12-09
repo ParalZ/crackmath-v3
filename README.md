@@ -38,12 +38,11 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 ## Future development
 
 - make prettier module cards to see the progress as the progress bar, some that are finished some in progress and showing the percentage progress.
-- wydupić score z pytań i dać pytania wyżej
 - make the paywall secure and working (so users that does not have the course buyed cannot see the premium content, and users that have the course can actually see it)
 
 ## future future ideas
 
-- moze scroll na pytaniach zamiast na całą strone
 - pokazywanie wiadomosci przy logowaniu
 - zrobienie ładniejszego navbara
 - side panel na cały kurs
+- moze scroll na pytaniach zamiast na całą strone
