@@ -46,6 +46,7 @@ export default function MathFieldWrapper({
   return (
     <div className="w-full" onClick={() => mf.current?.focus()}>
       <math-field
+        className="[&::part(menu-toggle)]:hidden"
         ref={mf}
         onInput={(evt) => onChange((evt.target as MathfieldElement).value)}
         style={{

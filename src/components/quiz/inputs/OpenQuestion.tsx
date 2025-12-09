@@ -39,9 +39,8 @@ export function OpenQuestion({
       borderColor = "border-neutral-800 opacity-50";
     }
   } else {
-    // Normal state focus style logic is handled inside the wrapper or via CSS,
-    // but we can set a default border here.
-    borderColor = "border-neutral-700 hover:border-neutral-500 h-15";
+    //not answered yet
+    borderColor = "border-neutral-700 hover:border-neutral-500 border-3 h-15";
   }
 
   return (
